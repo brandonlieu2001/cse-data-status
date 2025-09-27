@@ -1,6 +1,7 @@
 library(readxl)
 library(dplyr)
 library(ggplot2)
+library(tidyr)
 
 ### Calculate totals per state ###
 # find pathways to local files
@@ -8,7 +9,7 @@ file_pathways <- list.files("/Users/brandonlieu/Desktop/sheriff_data_check", ful
 
 # read in list of state spreadsheets
 state_sheets <- lapply(file_pathways, read_excel, sheet = 2) # assumes that data is on second tab; 
-names(state_sheets) <- basename(file_pathways)               # Brandon combined Angie/Kendall/Sophie data onto tab 2 of local files
+names(state_sheets) <- basename(file_pathways)               # Brandon combined TX: Angie/Kendall/Sophie data onto tab 2 of local files; also for CA between Brandon/Xuechao/Chris
 
 # for each state spreadsheet, rename col given row 1 is col names
 state_sheets <- lapply(state_sheets, function(state_data) {
