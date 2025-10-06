@@ -23,42 +23,44 @@ state_sheets <- lapply(state_sheets, function(state_data) {
 # for each state spreadsheet, calculate # of candidates and missing data for each descriptive variable
 state_summaries <- lapply(state_sheets, function(state_data) {
   
-  state_summary <- state_data %>%
-    filter(!is.na(`Candidate(winner/runner-up)_Firstname`) & `Candidate(winner/runner-up)_Firstname`!= "") %>% # assumes that all candidates have at least first name
-    filter(!is.na(`Candidate_Index`)) %>% 
+  # Candidate-level filtering and missingness
+  candidate_summary <- state_data %>%
+    filter(
+      !is.na(`Candidate(winner/runner-up)_Firstname`) & `Candidate(winner/runner-up)_Firstname` != "",
+      !is.na(Candidate_Index)
+    ) %>%
     summarise(
-      
-      # raw counts
-      n_candidates          = n(),
-      n_missing_votes       = sum(is.na(Percent_Votes) | Percent_Votes == "", na.rm = TRUE),
-      n_missing_gender      = sum(is.na(`Picture-identified Gender`) | `Picture-identified Gender` == "", na.rm = TRUE),
-      n_missing_pronoun     = sum(is.na(Pronoun) | Pronoun == "" , na.rm = TRUE),
-      n_missing_ethnicity   = sum(is.na(Ethnicity) | Ethnicity == "", na.rm = TRUE),
-      n_missing_political   = sum(is.na(Political_Affiliation) | Political_Affiliation == "", na.rm = TRUE),
-      n_missing_race        = sum(!(as.logical(`Race: White`) |
-                                      as.logical(`Race: Black or African American`) |
-                                      as.logical(`Race: American Indian or Alaska Native`) |
-                                      as.logical(`Race: Asian`) |
-                                      as.logical(`Race: Native Hawaiian or Other Pacific Islander`)), na.rm = TRUE),
-      n_missing_birthyear   = sum(is.na(Birth_Year) | Birth_Year == "", na.rm = TRUE),
-      
-      # election counts
-      n_elections           = sum(as.numeric(Candidate_Index) == 1, na.rm = TRUE),
-      n_contested_elections = sum(as.numeric(Candidate_Index) == 2, na.rm = TRUE),
-      
-      # proportion of missing data (TRUE (1) == missing, FALSE (0) == found)
-      prop_missing_votes       = mean(is.na(Percent_Votes) | Percent_Votes == "", na.rm = TRUE), # <- i.e. where n candidates identified, this fraction don't have votes associated w/ candidate
-      prop_missing_gender      = mean(is.na(`Picture-identified Gender`) | `Picture-identified Gender` == "", na.rm = TRUE),
-      prop_missing_pronoun     = mean(is.na(Pronoun) | Pronoun == "", na.rm = TRUE),
-      prop_missing_ethnicity   = mean(is.na(Ethnicity) | Ethnicity == "", na.rm = TRUE),
-      prop_missing_political   = mean((is.na(Political_Affiliation) | Political_Affiliation == ""), na.rm = TRUE),
-      prop_missing_race        = mean(!(as.logical(`Race: White`) |
-                                          as.logical(`Race: Black or African American`) |
-                                          as.logical(`Race: American Indian or Alaska Native`) |
-                                          as.logical(`Race: Asian`) |
-                                          as.logical(`Race: Native Hawaiian or Other Pacific Islander`)), na.rm = TRUE),
-      prop_missing_birthyear   = mean(is.na(Birth_Year) | Birth_Year == "", na.rm = TRUE)
+      n_candidates        = n(),
+      n_missing_votes     = sum(is.na(Percent_Votes) | Percent_Votes == "", na.rm = TRUE),
+      n_missing_gender    = sum(is.na(`Picture-identified Gender`) | `Picture-identified Gender` == "", na.rm = TRUE),
+      n_missing_pronoun   = sum(is.na(Pronoun) | Pronoun == "", na.rm = TRUE),
+      n_missing_ethnicity = sum(is.na(Ethnicity) | Ethnicity == "", na.rm = TRUE),
+      n_missing_political = sum(is.na(Political_Affiliation) | Political_Affiliation == "", na.rm = TRUE),
+      n_missing_race      = sum(!(as.logical(`Race: White`) |
+                                    as.logical(`Race: Black or African American`) |
+                                    as.logical(`Race: American Indian or Alaska Native`) |
+                                    as.logical(`Race: Asian`) |
+                                    as.logical(`Race: Native Hawaiian or Other Pacific Islander`)), na.rm = TRUE),
+      n_missing_birthyear = sum(is.na(Birth_Year) | Birth_Year == "", na.rm = TRUE)
     )
+  
+  # Election-level counts (using county-year as election ID)
+  election_summary <- state_data %>%
+    filter(
+      !is.na(`Candidate(winner/runner-up)_Firstname`) & `Candidate(winner/runner-up)_Firstname` != "",
+      !is.na(Candidate_Index)
+    ) %>%
+    group_by(County_Name, Election_Year) %>%
+    summarise(n_candidates = n()) %>%
+    ungroup() %>% # drop groups to sum at state-level, rather than county-level
+    summarise(
+      n_elections = n(),
+      n_contested_elections = sum(n_candidates > 1),
+      n_uncontested_elections = sum(n_candidates == 1)
+    )
+  
+  # Combine both into one summary row
+  bind_cols(candidate_summary, election_summary)
 })
 
 # ---------------------------------------------------------- Calculate total candidates/elections and missingness across ALL states using state_summaries -----------------------------------------------------------
@@ -108,7 +110,7 @@ contest_elections_minority_summary <- all_state_data %>%
   mutate(Election_Year_num = as.numeric(Election_Year),
          contested_flag = if_else(as.numeric(Candidate_Index) == 2, 1, 0)) %>%
   group_by(State_Name, County_Name, Election_Year_num) %>%
-  mutate(contested_flag = max(contested_flag)) %>%   # Set all rows in county-year to 1 if any county-year has contested_flag == 1
+  mutate(contested_flag = max(contested_flag), na.rm = TRUE) %>%   # Set all rows in county-year to 1 if any county-year has contested_flag == 1
   filter(contested_flag == 1) %>% # filter county-year only contested elections (n=413)
   summarise(
     n_minority = sum(minority_flag == 1, na.rm = TRUE), # given contested county-year, identify number of minorities involved
