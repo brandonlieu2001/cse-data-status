@@ -41,7 +41,20 @@ state_summaries <- lapply(state_sheets, function(state_data) {
                                     as.logical(`Race: American Indian or Alaska Native`) |
                                     as.logical(`Race: Asian`) |
                                     as.logical(`Race: Native Hawaiian or Other Pacific Islander`)), na.rm = TRUE),
-      n_missing_birthyear = sum(is.na(Birth_Year) | Birth_Year == "", na.rm = TRUE)
+      n_missing_birthyear = sum(is.na(Birth_Year) | Birth_Year == "", na.rm = TRUE),
+      
+      # proportion of missing data (TRUE (1) == missing, FALSE (0) == found)
+      prop_missing_votes       = mean(is.na(Percent_Votes) | Percent_Votes == "", na.rm = TRUE), # <- i.e. where n candidates identified, this fraction don't have votes associated w/ candidate
+      prop_missing_gender      = mean(is.na(`Picture-identified Gender`) | `Picture-identified Gender` == "", na.rm = TRUE),
+      prop_missing_pronoun     = mean(is.na(Pronoun) | Pronoun == "", na.rm = TRUE),
+      prop_missing_ethnicity   = mean(is.na(Ethnicity) | Ethnicity == "", na.rm = TRUE),
+      prop_missing_political   = mean((is.na(Political_Affiliation) | Political_Affiliation == ""), na.rm = TRUE),
+      prop_missing_race        = mean(!(as.logical(`Race: White`) |
+                                          as.logical(`Race: Black or African American`) |
+                                          as.logical(`Race: American Indian or Alaska Native`) |
+                                          as.logical(`Race: Asian`) |
+                                          as.logical(`Race: Native Hawaiian or Other Pacific Islander`)), na.rm = TRUE),
+      prop_missing_birthyear   = mean(is.na(Birth_Year) | Birth_Year == "", na.rm = TRUE)
     )
   
   # Election-level counts (using county-year as election ID)
