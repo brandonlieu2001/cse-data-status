@@ -25,6 +25,7 @@ state_summaries <- lapply(state_sheets, function(state_data) {
   
   state_summary <- state_data %>%
     filter(!is.na(`Candidate(winner/runner-up)_Firstname`) & `Candidate(winner/runner-up)_Firstname`!= "") %>% # assumes that all candidates have at least first name
+    filter(!is.na(`Candidate_Index`)) %>% 
     summarise(
       
       # raw counts
@@ -89,7 +90,9 @@ grand_total_prop_df %>%
 # ---------------------------------------------------------- Minority candidate calculation ----------------------------------------------------------
 all_state_data <- bind_rows(state_sheets) %>% # combine all separate sheets onto one main sheet
   filter(!(is.na(Statefips))) %>% # remove blank rows (no state associated)
-  filter(!is.na(`Candidate(winner/runner-up)_Firstname`) & `Candidate(winner/runner-up)_Firstname`!= "") # only include rows with candidates
+  filter(!is.na(`Candidate(winner/runner-up)_Firstname`) & `Candidate(winner/runner-up)_Firstname`!= "") %>%  # only include rows with candidates
+  filter(!is.na(`Candidate_Index`))
+
 
 # Add one new col that detects if the candidate is minority
 all_state_data <- all_state_data %>% 
@@ -118,3 +121,4 @@ contest_elections_minority_summary <- all_state_data %>%
     total_contested = sum(n_contested_elections), # total contested elections
     total_contested_w_minority = sum(n_contested_elections_w_minority) # total contested elections involving at least one minority
   )
+
